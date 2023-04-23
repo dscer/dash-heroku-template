@@ -236,45 +236,99 @@ fig_6.for_each_annotation(lambda a: a.update(text=a.text.replace("job_prestige="
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
-app.layout = html.Div(
-    [
-        html.H1("Exploration of the Nationally Representative General Social Survey of Adults in the United States"),
+app.layout = html.Div([
+    html.H1('Dash GSS Analysis'),
+    dcc.Tabs(id="tabs-example-graph", value='tab-1-example-graph', children=[
+        dcc.Tab(label='Welcome', value='tab-1-example-graph'),
+        dcc.Tab(label='Summary', value='tab-2-example-graph'),
+        dcc.Tab(label='Discovery', value='tab-3-example-graph'),
+        dcc.Tab(label='Analytics', value='tab-4-example-graph')
+    ]),
+    html.Div(id='tabs-content-example-graph')
+])
+
+@app.callback(Output('tabs-content-example-graph', 'children'),
+              Input('tabs-example-graph', 'value'))
+def render_content(tab):
+    if tab == 'tab-1-example-graph':
+        return html.Div([
+            html.H1("Exploration of the Nationally Representative General Social Survey of Adults in the United States"),
         
-        dcc.Markdown(children = markdown_text),
+            dcc.Markdown(children = markdown_text)            
+        ])
+    elif tab == 'tab-2-example-graph':
+        return html.Div([
+            html.H2("Mean Income, Occupational Prestige, Socioeconomic Idx, and Years of Education by Sex"),
         
-        html.H2("Mean Income, Occupational Prestige, Socioeconomic Idx, and Years of Education by Sex"),
+            dcc.Graph(figure=table)
+        ])
+    
+    elif tab == 'tab-3-example-graph':
+        return html.Div([
+            html.H2("Survey Responses by Sex"),
         
-        dcc.Graph(figure=table),
+            html.Div([
+
+                html.H3("Group Feature"),
+
+                dcc.Dropdown(id='group',
+                             options=[{'label': i, 'value': i} for i in ['sex', 'region', 'education']],
+                             value='sex'),
+
+                html.H3("Category Feature"),
+
+                dcc.Dropdown(id='category',
+                             options=[{'label': i, 'value': i} for i in ['satjob', 'relationship', 'male_breadwinner', 'men_bettersuited', 'child_suffer', 'men_overwork']],
+                             value='male_breadwinner')
+
+            ], style={'width': '25%', 'float': 'left'}),
+
+            html.Div([
+
+                dcc.Graph(id="graph")
+
+            ], style={'width': '70%', 'float': 'right'})
+        ])
+    
+    elif tab == 'tab-4-example-graph':
+        return html.Div([
+            html.H2("Scatter and Best Line of Fit for Occupational Prestige vs. Income"),
         
-        html.H2("Survey Response to 'Male Breadwinner' Question by Sex"),
-        
-        dcc.Graph(figure=fig_3),
-        
-        html.H2("Scatter and Best Line of Fit for Occupational Prestige vs. Income"),
-        
-        dcc.Graph(figure=fig_4),
-        
-        html.Div([
-            
-            html.H2("Dist. of Income"),
-            
-            dcc.Graph(figure=fig_5a)
-            
-        ], style = {'width':'48%', 'float':'left'}),
-        
-        html.Div([
-            
-            html.H2("Dist. of Occupational Prestige"),
-            
-            dcc.Graph(figure=fig_5b)
-            
-        ], style = {'width':'48%', 'float':'right'}),
-        
-        html.H2("Distribution of Occupational Prestige Groups by Sex"),
-        
-        dcc.Graph(figure=fig_6)
-    ]
-)
+            html.Div([
+
+                html.H2("Dist. of Income"),
+
+                dcc.Graph(figure=fig_5a)
+
+            ], style = {'width':'48%', 'float':'left'}),
+
+            html.Div([
+
+                html.H2("Dist. of Occupational Prestige"),
+
+                dcc.Graph(figure=fig_5b)
+
+            ], style = {'width':'48%', 'float':'right'}),
+
+            html.H2("Distribution of Occupational Prestige Groups by Sex"),
+
+            dcc.Graph(figure=fig_6)
+        ])
+    
+@app.callback(Output(component_id="graph",component_property="figure"), 
+              [Input(component_id='group',component_property="value"),
+              Input(component_id='category',component_property="value")])
+
+def make_figure(group, category):
+    gss_groupbar = gss_clean.groupby([group, category]).size()
+    gss_groupbar = gss_groupbar.reset_index()
+    gss_groupbar = gss_groupbar.rename({0:'count'}, axis=1)
+    
+    fig = px.bar(gss_groupbar, x=category, y='count', 
+                 color=group,
+                 barmode = 'group')
+    fig.update_layout(showlegend=True)
+    return fig
 
 # -
 
@@ -286,9 +340,6 @@ app.layout = html.Div(
 # **Challenge 2**: Alter the barplot from problem 3 to include user inputs. Create two dropdown menus on the dashboard. The first one should allow a user to display bars for the categories of `satjob`, `relationship`, `male_breadwinner`, `men_bettersuited`, `child_suffer`, or `men_overwork`. The second one should allow a user to group the bars by `sex`, `region`, or `education`. After choosing a feature for the bars and one for the grouping, program the barplot to update automatically to display the user-inputted features. One bonus point will be awarded for a good effort, and 3 bonus points will be awarded for a working user-input barplot in the dashboard.
 #
 # **Challenge 3**: Follow the steps listed in the module notebook to deploy your dashboard on Heroku. 1 bonus point will be awarded for a Heroku link to an app that isn't working. 4 bonus points will be awarded for a working Heroku link.
-
-
-
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=8051, host='0.0.0.0')
